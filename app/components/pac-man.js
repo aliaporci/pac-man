@@ -6,12 +6,21 @@ export default Ember.Component.extend(KeyboardShortcuts, {
     this.drawCircle();
   },
 
-  drawCircle: function() {
+  ctx: Ember.computed(function() {
     let canvas = document.getElementById("myCanvas");
     let ctx = canvas.getContext("2d");
-    let x = 50;
-    let y = 100;
-    let radius = 20;
+    return ctx
+  }
+),
+  x: 50,
+  y: 100,
+  squareSize: 40,
+
+  drawCircle: function() {
+    let ctx = this.get('ctx');
+    let x = this.get('x');
+    let y = this.get('y');
+    let radius = this.get('squareSize')/2;
 
     ctx.fillStyle = '#000';
     ctx.beginPath();
@@ -20,10 +29,24 @@ export default Ember.Component.extend(KeyboardShortcuts, {
     ctx.fill();
   },
 
+  clearScreen: function() {
+    let ctx = this.get('ctx');
+    let screenWidth = 800;
+    let screenHeight = 600;
+
+    ctx.clearRect(0, 0, screenWidth, screenHeight);
+  },
+
+  movePacMan: function(direction, amount) {
+    this.incrementProperty(direction, amount);
+    this.clearScreen();
+    this.drawCircle();
+  },
+
   keyboardShortcuts: {
-    up: function() {console.log('UPUPUP');},
-    down: function() {console.log('DOWNDOWNDOWN');},
-    left: function() {console.log('LEFTLEFTLEFT');},
-    right: function() {console.log('ANTELEFTANTELEFTANTELEFT');},
+    up: function() { this.movePacMan('y', this.get('squareSize') * -1);},
+    down: function() { this.movePacMan('y', this.get('squareSize'));},
+    left: function() { this.movePacMan('x', this.get('squareSize') * -1);},
+    right: function() { this.movePacMan('x', this.get('squareSize'));},
   },
 });
