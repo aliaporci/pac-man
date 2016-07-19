@@ -38,6 +38,13 @@ export default Ember.Component.extend(KeyboardShortcuts, {
     [2, 2, 2, 2, 2, 2, 2, 1],
     [1, 2, 2, 2, 2, 2, 2, 1],
   ],
+  directions: {
+    'up': { x: 0, y: -1 },
+    'down': { x: 0, y: 1 },
+    'left': { x: -1, y: 0 },
+    'right': { x: 1, y: 0 },
+    'stopped': { x: 0, y: 0 }
+  },
   score: 0,
   levelNumber: 1,
 
@@ -102,26 +109,42 @@ export default Ember.Component.extend(KeyboardShortcuts, {
     ctx.clearRect(0, 0, this.get('screenPixelWidth'), this.get('screenPixelHeight'));
   },
 
-  collidedWithBorder() {
-    let x = this.get('x');
-    let y = this.get('y');
-    let screenWidth = this.get('screenWidth');
-    let screenHeight = this.get('screenHeight');
+  // collidedWithBorder() {
+  //   let x = this.get('x');
+  //   let y = this.get('y');
+  //   let screenWidth = this.get('screenWidth');
+  //   let screenHeight = this.get('screenHeight');
+  //
+  //   let pacOutOfBounds = x < 0 ||
+  //                        y < 0 ||
+  //                        x >= screenWidth ||
+  //                        y >= screenHeight;
+  //
+  //   return pacOutOfBounds;
+  // },
+  //
+  // collidedWithWall() {
+  //   let x = this.get('x');
+  //   let y = this.get('y');
+  //   let grid = this.get('grid');
+  //
+  //   return grid[y][x] === 1;
+  // },
 
-    let pacOutOfBounds = x < 0 ||
-                         y < 0 ||
-                         x >= screenWidth ||
-                         y >= screenHeight;
-
-    return pacOutOfBounds;
+  pathBlockedInDirection(direction) {
+    let cellTypeInDirection = this.cellTypeInDirection(direction)
+    return Ember.isEmpty(cellTypeInDirection) || cellTypeInDirection === 1;
   },
 
-  collidedWithWall() {
-    let x = this.get('x');
-    let y = this.get('y');
-    let grid = this.get('grid');
+  cellTypeInDirection(direction) {
+    let nextX = this.nextCoordinate('x', direction);
+    let nextY = this.nextCoordinate('y', direction);
 
-    return grid[y][x] === 1;
+    return this.get(`grid.${nextY}.${nextX}`);
+  },
+
+  nextCoordinate(coordinate, direction) {
+    return this.get(coordinate) + this.get(`directions.${direction}.${coordinate}`);
   },
 
   processAnyPellets() {
@@ -140,14 +163,13 @@ export default Ember.Component.extend(KeyboardShortcuts, {
     }
   },
 
-  movePacMan(direction, amount) {
-    this.incrementProperty(direction, amount);
+  movePacMan(direction) {
+    if(!this.pathBlockedInDirection(direction)) {
+      this.set('x', this.nextCoordinate('x', direction));
+      this.set('y', this.nextCoordinate('y', direction));
 
-    if(this.collidedWithBorder() || this.collidedWithWall()) {
-      this.decrementProperty(direction, amount);
+      this.processAnyPellets();
     }
-
-    this.processAnyPellets();
 
     this.clearScreen();
     this.drawGrid();
@@ -184,9 +206,9 @@ export default Ember.Component.extend(KeyboardShortcuts, {
   },
 
   keyboardShortcuts: {
-    up() { this.movePacMan('y', -1);},
-    down() { this.movePacMan('y', 1);},
-    left() { this.movePacMan('x', -1);},
-    right() { this.movePacMan('x', 1);},
+    up() { this.movePacMan('up');},
+    down() { this.movePacMan('down');},
+    left() { this.movePacMan('left');},
+    right() { this.movePacMan('right');},
   },
 });
