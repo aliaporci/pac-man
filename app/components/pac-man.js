@@ -5,6 +5,7 @@ export default Ember.Component.extend(KeyboardShortcuts, {
   didInsertElement() {
     this.drawGrid();
     this.drawPac();
+    this.movementLoop();
   },
 
   ctx: Ember.computed(function() {
@@ -47,8 +48,8 @@ export default Ember.Component.extend(KeyboardShortcuts, {
     'right': { x: 1, y: 0 },
     'stopped': { x: 0, y: 0 }
   },
-  isMoving: false,
-  direction: 'stopped',
+  intent: 'down',
+  direction: 'down',
   score: 0,
   levelNumber: 1,
 
@@ -150,25 +151,14 @@ export default Ember.Component.extend(KeyboardShortcuts, {
     }
   },
 
-  movePacMan(direction) {
-    let inputBlocked = this.get('isMoving') || this.pathBlockedInDirection(direction);
-    let inputAllowed = !inputBlocked;
+  changePacDirection() {
+    let intent = this.get('intent');
 
-    if(inputAllowed) {
-      this.set('direction', direction);
-      this.set('isMoving', true);
-      this.movementLoop();
+    if(this.pathBlockedInDirection(intent)) {
+      this.set('direction', 'stopped');
+    } else {
+      this.set('direction', intent);
     }
-    // if(!this.pathBlockedInDirection(direction)) {
-    //   this.set('x', this.nextCoordinate('x', direction));
-    //   this.set('y', this.nextCoordinate('y', direction));
-    //
-    //   this.processAnyPellets();
-    // }
-    //
-    // this.clearScreen();
-    // this.drawGrid();
-    // this.drawPac();
   },
 
   movementLoop() {
@@ -177,18 +167,21 @@ export default Ember.Component.extend(KeyboardShortcuts, {
       this.set('x', this.nextCoordinate('x', direction));
       this.set('y', this.nextCoordinate('y', direction));
 
-      this.set('isMoving', false);
       this.set('frameCycle', 1);
-
       this.processAnyPellets();
+
+      this.changePacDirection();
+    } else if(this.get('direction') === 'stopped') {
+      this.changePacDirection();
     } else {
       this.incrementProperty('frameCycle');
-      Ember.run.later(this, this.movementLoop, 1000/60);
     }
 
     this.clearScreen();
     this.drawGrid();
     this.drawPac();
+
+    Ember.run.later(this, this.movementLoop, 1000/60);
   },
 
   levelComplete() {
@@ -221,9 +214,9 @@ export default Ember.Component.extend(KeyboardShortcuts, {
   },
 
   keyboardShortcuts: {
-    up() { this.movePacMan('up');},
-    down() { this.movePacMan('down');},
-    left() { this.movePacMan('left');},
-    right() { this.movePacMan('right');},
+    up() { this.set('intent', 'up');},
+    down() { this.set('intent', 'down');},
+    left() { this.set('intent', 'left');},
+    right() { this.set('intent', 'right');},
   },
 });
