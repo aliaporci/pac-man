@@ -3,6 +3,7 @@ import KeyboardShortcuts from 'ember-keyboard-shortcuts/mixins/component';
 
 export default Ember.Component.extend(KeyboardShortcuts, {
   didInsertElement: function() {
+    this.drawWalls();
     this.drawCircle();
   },
 
@@ -14,14 +15,26 @@ export default Ember.Component.extend(KeyboardShortcuts, {
   x: 1,
   y: 2,
   squareSize: 40,
-  screenWidth: 20,
-  screenHeight: 15,
+  screenWidth: Ember.computed(function() {
+    return this.get('grid.firstObject.length');
+  }),
+  screenHeight: Ember.computed(function() {
+    return this.get('grid.length');
+  }),
   screenPixelWidth: Ember.computed(function() {
     return this.get('screenWidth') * this.get('squareSize');
   }),
   screenPixelHeight: Ember.computed(function() {
     return this.get('screenHeight') * this.get('squareSize');
   }),
+  grid: [
+    [0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 1, 0, 1, 0, 0, 0, 1],
+    [0, 0, 1, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+  ],
 
   drawCircle: function() {
     let ctx = this.get('ctx');
@@ -37,6 +50,25 @@ export default Ember.Component.extend(KeyboardShortcuts, {
     ctx.arc(pixelX, pixelY, squareSize / 2, 0, Math.PI * 2, false);
     ctx.closePath();
     ctx.fill();
+  },
+
+  drawWalls: function() {
+    let squareSize = this.get('squareSize');
+    let ctx = this.get('ctx');
+    ctx.fillStyle = '#000';
+
+    let grid = this.get('grid');
+
+    grid.forEach(function(row, rowIndex) {
+      row.forEach(function(cell, columnIndex) {
+        if(cell == 1){
+          ctx.fillRect(columnIndex * squareSize,
+                       rowIndex * squareSize,
+                       squareSize,
+                       squareSize);
+        }
+      });
+    });
   },
 
   clearScreen: function() {
@@ -59,14 +91,23 @@ export default Ember.Component.extend(KeyboardShortcuts, {
     return pacOutOfBounds;
   },
 
+  collidedWithWall: function() {
+    let x = this.get('x');
+    let y = this.get('y');
+    let grid = this.get('grid');
+
+    return grid[y][x] == 1;
+  },
+
   movePacMan: function(direction, amount) {
     this.incrementProperty(direction, amount);
 
-    if(this.collidedWithBorder()) {
+    if(this.collidedWithBorder() || this.collidedWithWall()) {
       this.decrementProperty(direction, amount);
     }
 
     this.clearScreen();
+    this.drawWalls();
     this.drawCircle();
   },
 
