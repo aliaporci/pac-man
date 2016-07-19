@@ -3,8 +3,8 @@ import KeyboardShortcuts from 'ember-keyboard-shortcuts/mixins/component';
 
 export default Ember.Component.extend(KeyboardShortcuts, {
   didInsertElement: function() {
-    this.drawWalls();
-    this.drawCircle();
+    this.drawGrid();
+    this.drawPac();
   },
 
   ctx: Ember.computed(function() {
@@ -27,19 +27,20 @@ export default Ember.Component.extend(KeyboardShortcuts, {
   screenPixelHeight: Ember.computed(function() {
     return this.get('screenHeight') * this.get('squareSize');
   }),
+  // 0 is a blank space
+  // 1 is a wall
+  // 2 is a pellet
   grid: [
-    [0, 0, 0, 0, 0, 0, 0, 1],
-    [0, 1, 0, 1, 0, 0, 0, 1],
-    [0, 0, 1, 0, 0, 0, 0, 1],
-    [0, 0, 0, 0, 0, 0, 0, 1],
-    [0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 1],
+    [2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 1, 2, 1, 2, 2, 2, 1],
+    [2, 2, 1, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 1],
+    [2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 1],
   ],
 
-  drawCircle: function() {
+  drawCircle: function(x, y, radiusDivisor) {
     let ctx = this.get('ctx');
-    let x = this.get('x');
-    let y = this.get('y');
     let squareSize = this.get('squareSize');
 
     let pixelX = (x + 1/2) * squareSize;
@@ -47,25 +48,47 @@ export default Ember.Component.extend(KeyboardShortcuts, {
 
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.arc(pixelX, pixelY, squareSize / 2, 0, Math.PI * 2, false);
+    ctx.arc(pixelX, pixelY, squareSize / radiusDivisor, 0, Math.PI * 2, false);
     ctx.closePath();
     ctx.fill();
   },
 
-  drawWalls: function() {
-    let squareSize = this.get('squareSize');
-    let ctx = this.get('ctx');
-    ctx.fillStyle = '#000';
+  drawPac: function() {
+    let x = this.get('x');
+    let y = this.get('y');
+    let radiusDivisor = 2;
 
+    this.drawCircle(x, y, radiusDivisor);
+  },
+
+  drawWall: function(x, y) {
+    let ctx = this.get('ctx');
+    let squareSize = this.get('squareSize');
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x * squareSize,
+                 y * squareSize,
+                 squareSize,
+                 squareSize);
+  },
+
+  drawPellet: function(x, y) {
+    let radiusDivisor = 6;
+
+    this.drawCircle(x, y, radiusDivisor);
+  },
+
+  drawGrid: function() {
     let grid = this.get('grid');
 
-    grid.forEach(function(row, rowIndex) {
-      row.forEach(function(cell, columnIndex) {
-        if(cell == 1){
-          ctx.fillRect(columnIndex * squareSize,
-                       rowIndex * squareSize,
-                       squareSize,
-                       squareSize);
+    // FAT ARROWS Y'ALL
+    grid.forEach((row, rowIndex)=> {
+      row.forEach((cell, columnIndex)=> {
+        if(cell === 1){
+          this.drawWall(columnIndex, rowIndex);
+        }
+        if(cell === 2){
+          this.drawPellet(columnIndex, rowIndex);
         }
       });
     });
@@ -96,7 +119,17 @@ export default Ember.Component.extend(KeyboardShortcuts, {
     let y = this.get('y');
     let grid = this.get('grid');
 
-    return grid[y][x] == 1;
+    return grid[y][x] === 1;
+  },
+
+  processAnyPellets: function() {
+    let x = this.get('x');
+    let y = this.get('y');
+    let grid = this.get('grid');
+
+    if(grid[y][x] === 2){
+      grid[y][x] = 0;
+    }
   },
 
   movePacMan: function(direction, amount) {
@@ -106,9 +139,11 @@ export default Ember.Component.extend(KeyboardShortcuts, {
       this.decrementProperty(direction, amount);
     }
 
+    this.processAnyPellets();
+
     this.clearScreen();
-    this.drawWalls();
-    this.drawCircle();
+    this.drawGrid();
+    this.drawPac();
   },
 
   keyboardShortcuts: {
